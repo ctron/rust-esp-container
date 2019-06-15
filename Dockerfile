@@ -55,7 +55,7 @@ RUN mkdir /build
 VOLUME /build
 WORKDIR /build
 
-COPY bindgen-project build-project /usr/local/bin/
+COPY create-project bindgen-project build-project /usr/local/bin/
 COPY templates /templates
 
 CMD /usr/local/bin/build-project

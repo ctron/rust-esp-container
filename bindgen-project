@@ -1,12 +1,21 @@
 #!/usr/bin/env bash
 
-set -e
+set -ex
 
-for i in $(find "$IDF_PATH/components" -name include); do
-	echo $i
+FLAGS=""
+FLAGS+=" --sysroot=/esp/xtensa-esp32-elf/xtensa-esp32-elf/sysroot"
+FLAGS+=" -I/build/build/include"
+FLAGS+=" -D__bindgen"
+FLAGS+=" -target xtensa"
+FLAGS+=" -x c"
+
+for i in $(find "$IDF_PATH/components" -maxdepth 3 -name include); do
+	FLAGS+=" -I$i"
 done
 
-bindgen --use-core --no-layout-tests --output src/bindings.rs src/bindings.h -- $INCLUDES
+LIBCLANG_PATH=/llvm_build/lib
+export LIBCLANG_PATH
 
-rustup run stable rustfmt src/bindings.rs
+bindgen --use-core --no-layout-tests --output esp32-sys/src/bindings.rs esp32-sys/src/bindings.h -- $FLAGS
+
 
