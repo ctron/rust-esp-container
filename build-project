@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+set -e
+
+die() { echo "$*" 1>&2 ; exit 1 ; }
+
+test -f Cargo.toml || die "unable to find 'Cargo.toml'. You will need to map the container path /build to the path of your Rust project. You can do this using: docker run -ti -v $PWD:/build:z rust-esp"
+
+if ! test -f Makefile; then
+	echo "'Makefile' is missing, creating from template"
+	cp /templates/Makefile Makefile
+fi
+
+test -f sdkconfig || die "'sdkconfig' is missing. You can create one running 'make menuconfig'"
+
+if ! test -d esp-idf; then
+	echo "esp-idf symlink is missing, creating ..."
+	ln -s esp-idf /esp-idf
+fi
+
+if ! test -f .cargo/config; then
+	echo "Cargo config (.cargo/config) is missing, creating from template"
+	mkdir -p .cargo/config
+	cp /templates/cargo.config .cargo/config
+fi
+
+make -j app
+
+if ! test -d esp-32sys; then
+	echo "esp32-sys crate is missing, running bindgen ..."
+	bindgen-project esp32-sys
+fi
+
+rustup run xtensa xargo build --target xtensa-esp32-none-elf
+
+$IDF_PATH/components/esptool_py/esptool/esptool.py --chip esp32 elf2image -o espapp.bin target/xtensa-esp32-none-elf/release/esp-app
+

@@ -27,7 +27,7 @@ RUN echo 'int main() {  printf("Hello world\n"); }' > test.c \
  && /llvm_build/bin/clang -target xtensa -fomit-frame-pointer -S  test.c -o test.S \
  && xtensa-esp32-elf-as test.S \
  && file a.out \
- && rm a.out test.c test.C
+ && rm a.out test.c test.S
 
 # RUN git clone https://github.com/MabezDev/rust-xtensa.git
 RUN git clone -b xtensa-target https://github.com/MabezDev/rust-xtensa.git \
@@ -55,4 +55,8 @@ RUN mkdir /build
 VOLUME /build
 WORKDIR /build
 
+COPY bindgen-project build-project /usr/local/bin/
+COPY templates /templates
+
+CMD /usr/local/bin/build-project
 

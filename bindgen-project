@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -e
+
+for i in $(find "$IDF_PATH/components" -name include); do
+	echo $i
+done
+
+bindgen --use-core --no-layout-tests --output src/bindings.rs src/bindings.h -- $INCLUDES
+
+rustup run stable rustfmt src/bindings.rs
+
