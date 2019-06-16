@@ -67,9 +67,17 @@ You can also build the container image yourself, by cloning this repository and 
 ## Notes
 
   * Use this at your own risk. No guarantees.
+  * Contributions are welcome.
   * This /should/ work on Windows and MacOS the same way. But I haven't tested it.
+  * In theory this should work also with with the ESP8266. A few tweaks for the build files
+    will be required, and I didn't test this.
+  * I put this on [quay.io](https:/quay.io) as Docker Hub continously failed to build this
+    image. After several hours, the build times out. On quay.io it still takes around two hours
+    but never times out.
 
 ## Also see
+
+This work is built upn the work of others. Please see:
 
   * http://quickhack.net/nom/blog/2019-05-14-build-rust-environment-for-esp32.html
   * https://esp32.com/viewtopic.php?t=9226
