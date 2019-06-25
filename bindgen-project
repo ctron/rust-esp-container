@@ -13,9 +13,7 @@ for i in $(find "$IDF_PATH/components" -maxdepth 3 -name include); do
 	FLAGS+=" -I$i"
 done
 
-LIBCLANG_PATH=/llvm_build/lib
-export LIBCLANG_PATH
+: ${BINDGEN_FLAGS:="--use-core --no-layout-tests"}
 
-bindgen --use-core --no-layout-tests --output esp32-sys/src/bindings.rs esp32-sys/src/bindings.h -- $FLAGS
-
+bindgen $BINDGEN_FLAGS --output esp32-sys/src/bindings.rs esp32-sys/src/bindings.h -- $FLAGS
 

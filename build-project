@@ -24,7 +24,7 @@ if test -d esp32-sys; then
 	fi
 fi
 
-rustup run xtensa xargo build --target xtensa-esp32-none-elf --release
+xargo-project
 
 $IDF_PATH/components/esptool_py/esptool/esptool.py --chip esp32 elf2image -o esp-app.bin target/xtensa-esp32-none-elf/release/esp-app
 
