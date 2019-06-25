@@ -1,4 +1,4 @@
-# Rust ESP compiler container
+# Rust ESP compiler container [![Docker Repository on Quay](https://quay.io/repository/ctron/rust-esp/status "Docker Repository on Quay")](https://quay.io/repository/ctron/rust-esp)
 
 This is a container which can be used to build a Rust project for the ESP32.
 
