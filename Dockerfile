@@ -49,6 +49,7 @@ RUN git clone -b ${RUST_REF} https://github.com/MabezDev/rust-xtensa.git \
  && ./configure --llvm-root="/llvm_build" --prefix="/rust_build" \
  && python ./x.py build \
  && python ./x.py install \
+ && cd .. \
  && rm -Rf rust-xtensa
 
 RUN /rust_build/bin/rustc --print target-list | grep xtensa
