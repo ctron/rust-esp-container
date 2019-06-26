@@ -74,7 +74,7 @@ RUN mkdir /build
 VOLUME /build
 WORKDIR /build
 
-COPY create-project bindgen-project build-project xargo-project /usr/local/bin/
+COPY create-project image-project bindgen-project build-project xargo-project /usr/local/bin/
 RUN chmod a+x /usr/local/bin/*
 COPY templates /templates
 
