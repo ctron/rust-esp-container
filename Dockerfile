@@ -45,9 +45,11 @@ RUN echo 'int main() {  printf("Hello world\n"); }' > test.c \
 ARG RUST_REF=xtensa-target
 RUN git clone -b ${RUST_REF} https://github.com/MabezDev/rust-xtensa.git \
  && mkdir /rust_build \
+ && cd rust-xtensa \
  && ./configure --llvm-root="/llvm_build" --prefix="/rust_build" \
  && python ./x.py build \
- && python ./x.py install
+ && python ./x.py install \
+ && cd ..
 
 RUN /rust_build/bin/rustc --print target-list | grep xtensa
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
