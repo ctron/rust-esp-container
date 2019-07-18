@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-
-set -e
-
-rustup run xtensa xargo build --target ${XARGO_TARGET:-xtensa-esp32-none-elf} --release

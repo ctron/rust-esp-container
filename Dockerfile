@@ -1,82 +1,164 @@
-FROM fedora:30
+FROM debian:buster-slim
 
-# Update system and install some build tools
+# -------------------------------------------------------------------
+# Toolchain Version Config
+# -------------------------------------------------------------------
 
-RUN dnf -y update
-RUN dnf -y install make automake gcc gcc-c++ kernel-devel git cmake ninja-build python file ncurses-devel flex bison gperf which
+# Espressif toolchain
+ARG ESP_VERSION="1.22.0-80-g6c4433a-5.2.0"
 
-# Clone xtensa version of llvm & clang
+# esp-idf framework
+ARG IDF_VERSION="v3.3-beta3"
 
-ARG LLVM_REF=esp-develop
-ARG CLANG_REF=esp-develop
+# llvm-xtensa
+ARG CLANG_VERSION="248d9ce8765248d953c3e5ef4022fb350bbe6c51"
+ARG LLVM_VERSION="757e18f722dbdcd98b8479e25041b1eee1128ce9"
 
-RUN git clone -b ${LLVM_REF} https://github.com/espressif/llvm-xtensa.git
-RUN git clone -b ${CLANG_REF} https://github.com/espressif/clang-xtensa.git llvm-xtensa/tools/clang
+# rust-xtensa
+ARG RUSTC_VERSION="8b4a5a9d98912e97d4d3178705bb2dc19f50d1cb"
 
-RUN mkdir llvm_build
-WORKDIR llvm_build
+# -------------------------------------------------------------------
+# Toolchain Path Config
+# -------------------------------------------------------------------
 
-RUN cmake ../llvm-xtensa -DLLVM_TARGETS_TO_BUILD="Xtensa;X86" -DCMAKE_BUILD_TYPE=Release -G "Ninja"
-RUN cmake --build .
+ARG TOOLCHAIN="/home/esp32-toolchain"
 
-WORKDIR /
+ARG ESP_BASE="${TOOLCHAIN}/esp"
+ENV ESP_PATH "${ESP_BASE}/esp-toolchain"
+ENV IDF_PATH "${ESP_BASE}/esp-idf"
 
-# Clone esp-idf
+ARG LLVM_BASE="${TOOLCHAIN}/llvm"
+ARG LLVM_PATH="${LLVM_BASE}/llvm_xtensa"
+ARG LLVM_BUILD_PATH="${LLVM_BASE}/llvm_build"
+ARG LLVM_INSTALL_PATH="${LLVM_BASE}/llvm_install"
 
-RUN git clone -b v3.3-beta3 --recursive https://github.com/espressif/esp-idf.git esp-idf
+ARG RUSTC_BASE="${TOOLCHAIN}/rustc"
+ARG RUSTC_PATH="${RUSTC_BASE}/rust_xtensa"
+ARG RUSTC_BUILD_PATH="${RUSTC_BASE}/rust_build"
 
-ENV IDF_PATH=/esp-idf
-ENV PATH=$PATH:$IDF_PATH/tools
-RUN /usr/bin/python -m pip install --user -r /esp-idf/requirements.txt
+ENV PATH "/root/.cargo/bin:${ESP_PATH}/bin:${PATH}"
 
-# Download xtensa-esp32 toolchain
+# -------------------------------------------------------------------
+# Install expected depdendencies
+# -------------------------------------------------------------------
 
-ARG XTENSA_ESP32_VERSION=1.22.0-80-g6c4433a-5.2.0
-RUN curl -o /xtensa-esp32-elf-linux64.tar.gz -L https://dl.espressif.com/dl/xtensa-esp32-elf-linux64-${XTENSA_ESP32_VERSION}.tar.gz && mkdir /esp && cd /esp && tar xzf /xtensa-esp32-elf-linux64.tar.gz && rm /xtensa-esp32-elf-linux64.tar.gz
-ENV PATH=$PATH:/esp/xtensa-esp32-elf/bin
+RUN apt-get update \
+ && apt-get install -y \
+       bison \
+       cmake \
+       curl \
+       flex \
+       g++ \
+       gcc \
+       git \
+       gperf \
+       libncurses-dev \
+       make \
+       ninja-build \
+       python \
+       python-pip \
+       wget \
+ && rm -rf /var/lib/apt/lists/*
 
-RUN echo 'int main() {  printf("Hello world\n"); }' > test.c \
- && /llvm_build/bin/clang -target xtensa -fomit-frame-pointer -S  test.c -o test.S \
- && xtensa-esp32-elf-as test.S \
- && file a.out \
- && rm a.out test.c test.S
+# -------------------------------------------------------------------
+# Setup esp32 toolchain
+# -------------------------------------------------------------------
 
-# RUN git clone https://github.com/MabezDev/rust-xtensa.git
-ARG RUST_REF=xtensa-target
-RUN git clone -b ${RUST_REF} https://github.com/MabezDev/rust-xtensa.git \
- && mkdir /rust_build \
- && cd rust-xtensa \
- && ./configure --llvm-root="/llvm_build" --prefix="/rust_build" \
+WORKDIR "${ESP_BASE}"
+RUN curl \
+       --proto '=https' \
+       --tlsv1.2 \
+       -sSf \
+       -o "${ESP_PATH}.tar.gz" \
+       "https://dl.espressif.com/dl/xtensa-esp32-elf-linux64-${ESP_VERSION}.tar.gz" \
+ && mkdir "${ESP_PATH}" \
+ && tar -xzf "${ESP_PATH}.tar.gz" -C "${ESP_PATH}" --strip-components 1 \
+ && rm -rf "${ESP_PATH}.tar.gz"
+
+# -------------------------------------------------------------------
+# Setup esp-idf
+# -------------------------------------------------------------------
+
+WORKDIR "${ESP_BASE}"
+RUN  git clone \
+       --recursive --single-branch -b "${IDF_VERSION}" \
+       https://github.com/espressif/esp-idf.git \
+ && pip install --user -r "${IDF_PATH}/requirements.txt"
+
+# -------------------------------------------------------------------
+# Build llvm-xtensa
+# -------------------------------------------------------------------
+
+WORKDIR "${LLVM_BASE}"
+RUN git clone \
+        --recursive --single-branch \
+        https://github.com/espressif/llvm-xtensa.git "${LLVM_PATH}" \
+ && git clone \
+        --recursive --single-branch \
+        https://github.com/espressif/clang-xtensa.git "${LLVM_PATH}/tools/clang" \
+ && cd "${LLVM_PATH}/tools/clang/" \
+ && git reset --hard "${CLANG_VERSION}" \
+ && cd "${LLVM_PATH}" \
+ && git reset --hard "${LLVM_VERSION}" \
+ && mkdir -p "${LLVM_BUILD_PATH}" \
+ && cd "${LLVM_BUILD_PATH}" \
+ && cmake "${LLVM_PATH}" \
+       -DLLVM_TARGETS_TO_BUILD="Xtensa;X86" \
+       -DLLVM_INSTALL_UTILS=ON \
+       -DLLVM_BUILD_TESTS=0 \
+       -DLLVM_INCLUDE_TESTS=0 \
+       -DCMAKE_BUILD_TYPE=Release \
+       -DCMAKE_INSTALL_PREFIX="${LLVM_BASE}/llvm_install" \
+       -G "Ninja" \
+ && ninja install \
+ && rm -rf "${LLVM_PATH}" "${LLVM_BUILD_PATH}"
+
+# -------------------------------------------------------------------
+# Build rust-xtensa
+# -------------------------------------------------------------------
+
+WORKDIR "${RUSTC_BASE}"
+RUN git clone \
+        --recursive --single-branch \
+        https://github.com/MabezDev/rust-xtensa.git \
+        "${RUSTC_PATH}" \
+ && mkdir -p "${RUSTC_BUILD_PATH}" \
+ && cd "${RUSTC_PATH}" \
+ && git reset --hard "${RUSTC_VERSION}" \
+ && ./configure \
+        --llvm-root "${LLVM_INSTALL_PATH}" \
+        --prefix "${RUSTC_BUILD_PATH}" \
  && python ./x.py build \
- && python ./x.py install \
- && cd ..
+ && python ./x.py install
 
-RUN /rust_build/bin/rustc --print target-list | grep xtensa
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-ENV PATH=$PATH:/root/.cargo/bin
+# -------------------------------------------------------------------
+# Setup rustup toolchain
+# -------------------------------------------------------------------
 
-RUN rustup component add rustfmt
+RUN curl \
+        --proto '=https' \
+        --tlsv1.2 \
+        -sSf \
+        https://sh.rustup.rs \
+    | sh -s -- -y --default-toolchain stable \
+ && rustup component add rustfmt \
+ && rustup toolchain link xtensa "${RUSTC_BUILD_PATH}" \
+ && cargo install cargo-xbuild bindgen
 
-# install bindgen
-RUN cargo install bindgen
-# set LIBCLANG_PATH for bindgen
-ENV LIBCLANG_PATH=/llvm_build/lib
+# -------------------------------------------------------------------
+# Our Project
+# -------------------------------------------------------------------
 
-RUN rustup toolchain link xtensa /rust_build
-RUN rustup run xtensa rustc --print target-list | grep xtensa
+ENV PROJECT="/home/project/"
 
-# add xargo
-RUN cargo install xargo
-ENV XARGO_RUST_SRC=/rust-xtensa/src
+ENV XARGO_RUST_SRC="${RUSTC_PATH}/src"
+ENV TEMPLATES="${TOOLCHAIN}/templates"
+ENV LIBCLANG_PATH="${LLVM_INSTALL_PATH}/lib"
 
-# set up the build directory
-RUN mkdir /build
-VOLUME /build
-WORKDIR /build
+VOLUME "${PROJECT}"
+WORKDIR "${PROJECT}"
 
-COPY create-project image-project bindgen-project build-project xargo-project /usr/local/bin/
-RUN chmod a+x /usr/local/bin/*
-COPY templates /templates
+COPY bindgen-project build-project create-project image-project xbuild-project /usr/local/bin/
+COPY templates/ "${TEMPLATES}"
 
-CMD /usr/local/bin/build-project
-
+CMD ["/usr/local/bin/build-project"]

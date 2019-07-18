@@ -2,6 +2,10 @@
 
 set -e
 
-$IDF_PATH/components/esptool_py/esptool/esptool.py --chip esp32 elf2image -o esp-app.bin target/xtensa-esp32-none-elf/release/esp-app
+"${IDF_PATH}/components/esptool_py/esptool/esptool.py" \
+     --chip esp32 \
+     elf2image \
+     -o build/esp-app.bin \
+     target/xtensa-esp32-none-elf/release/esp-app
 
-echo "You can now flash 'esp-app.bin'"
+echo "You can now flash 'build/esp-app.bin'"

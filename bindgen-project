@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 
-set -ex
+set -e
 
 FLAGS=""
-FLAGS+=" --sysroot=/esp/xtensa-esp32-elf/xtensa-esp32-elf/sysroot"
-FLAGS+=" -I/build/build/include"
+FLAGS+=" --sysroot=${ESP_PATH}/xtensa-esp32-elf/sysroot"
+FLAGS+=" -I${PROJECT}/build/include"
 FLAGS+=" -D__bindgen"
 FLAGS+=" -target xtensa"
 FLAGS+=" -x c"
 
-for i in $(find "$IDF_PATH/components" -maxdepth 3 -name include); do
-	FLAGS+=" -I$i"
-done
+while read -r include; do
+	FLAGS+=" -I${include}"
+done <<< "$(find "${IDF_PATH}/components" -maxdepth 3 -name include)"
 
-: ${BINDGEN_FLAGS:="--use-core --no-layout-tests"}
+: "${BINDGEN_FLAGS:=--use-core --no-layout-tests}"
 
+#shellcheck disable=SC2086
 bindgen $BINDGEN_FLAGS --output esp32-sys/src/bindings.rs esp32-sys/src/bindings.h -- $FLAGS
-
