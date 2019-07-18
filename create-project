@@ -4,20 +4,20 @@ set -e
 
 die() { echo "$*" 1>&2 ; exit 1 ; }
 
-test -f Cargo.toml || die "unable to find 'Cargo.toml'. You will need to map the container path /build to the path of your Rust project. You can do this using: docker run -ti -v $PWD:/build:z rust-esp"
+test -f Cargo.toml || die "unable to find 'Cargo.toml'. You will need to map the container path /build to the path of your Rust project. You can do this using: docker run -ti -v $PWD:/home/project/build:z rust-esp"
 
 echo "Creating Makefile (Makefile)"
-cp /templates/Makefile Makefile
+cp "${TEMPLATES}/Makefile" Makefile
 
 echo "Creating esp-idf symlink (esp-idf -> /esp-idf)"
-ln -sf /esp-idf esp-idf
+ln -sf "${IDF_PATH}" esp-idf
 
 echo "Creating cargo config (.cargo/config)"
 mkdir -p .cargo
-cp /templates/cargo.config .cargo/config
+cp "${TEMPLATES}/cargo.config" .cargo/config
 
 echo "Creating main application wrapper (main/esp_app_main.c)"
 mkdir -p main
-cp /templates/main.c main/esp_app_main.c
-cp /templates/component.mk main/
+cp "${TEMPLATES}/main.c" main/esp_app_main.c
+cp "${TEMPLATES}/component.mk" main/
 
