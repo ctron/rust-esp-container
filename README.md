@@ -2,6 +2,14 @@
 
 This is a container which can be used to build a Rust project for the ESP32.
 
+**Note:** I recently noticed an issue compiling the `compiler_builtins`. It looks like some newly introduced issue.
+The workaround is to switch back to an older version of `compiler_builtins` in `Xargo.toml`:
+
+~~~toml
+[dependencies]
+compiler_builtins = { version = "=0.1.16" }
+~~~
+
 ## Pre-requisites
 
   * Docker
