@@ -42,8 +42,8 @@ RUN echo 'int main() {  printf("Hello world\n"); }' > test.c \
  && rm a.out test.c test.S
 
 # RUN git clone https://github.com/MabezDev/rust-xtensa.git
-ARG RUST_REF=xtensa-target
-RUN git clone -b ${RUST_REF} https://github.com/MabezDev/rust-xtensa.git \
+ARG RUST_REF="fix/register_calculation"
+RUN git clone -b ${RUST_REF} https://github.com/0ndorio/rust-xtensa.git \
  && mkdir /rust_build \
  && cd rust-xtensa \
  && ./configure --llvm-root="/llvm_build" --prefix="/rust_build" \
