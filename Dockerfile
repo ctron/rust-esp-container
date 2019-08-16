@@ -90,16 +90,18 @@ RUN  git clone \
 # -------------------------------------------------------------------
 
 WORKDIR "${LLVM_BASE}"
-RUN git clone \
-        --recursive --single-branch \
-        https://github.com/espressif/llvm-xtensa.git "${LLVM_PATH}" \
- && git clone \
-        --recursive --single-branch \
-        https://github.com/espressif/clang-xtensa.git "${LLVM_PATH}/tools/clang" \
- && cd "${LLVM_PATH}/tools/clang/" \
- && git reset --hard "${CLANG_VERSION}" \
+RUN mkdir "${LLVM_PATH}" \
  && cd "${LLVM_PATH}" \
- && git reset --hard "${LLVM_VERSION}" \
+ && git init \
+ && git remote add origin https://github.com/espressif/llvm-xtensa.git \
+ && git fetch --depth 1 origin "${LLVM_VERSION}" \
+ && git checkout FETCH_HEAD \
+ && mkdir -p "${LLVM_PATH}/tools/clang" \
+ && cd "${LLVM_PATH}/tools/clang" \
+ && git init \
+ && git remote add origin https://github.com/espressif/clang-xtensa.git \
+ && git fetch --depth 1 origin "${CLANG_VERSION}" \
+ && git checkout FETCH_HEAD \
  && mkdir -p "${LLVM_BUILD_PATH}" \
  && cd "${LLVM_BUILD_PATH}" \
  && cmake "${LLVM_PATH}" \
@@ -109,6 +111,7 @@ RUN git clone \
        -DLLVM_INCLUDE_TESTS=0 \
        -DCMAKE_BUILD_TYPE=Release \
        -DCMAKE_INSTALL_PREFIX="${LLVM_BASE}/llvm_install" \
+       -DCMAKE_CXX_FLAGS="-w" \
        -G "Ninja" \
  && ninja install \
  && rm -rf "${LLVM_PATH}" "${LLVM_BUILD_PATH}"
