@@ -13,6 +13,12 @@ while read -r include; do
 	FLAGS+=" -I${include}"
 done <<< "$(find "${IDF_PATH}/components" -maxdepth 3 -name include)"
 
+# Not picked up from above
+FLAGS+=" -I${IDF_PATH}/components/lwip/lwip/src/include"
+FLAGS+=" -I${IDF_PATH}/components/lwip/port/esp32/include"
+FLAGS+=" -I${IDF_PATH}/components/newlib/platform_include"
+FLAGS+=" -I${IDF_PATH}/components/lwip/include/apps"
+
 : "${BINDGEN_FLAGS:=--use-core --no-layout-tests}"
 
 #shellcheck disable=SC2086
