@@ -158,7 +158,7 @@ ENV LIBCLANG_PATH="${LLVM_INSTALL_PATH}/lib"
 VOLUME "${PROJECT}"
 WORKDIR "${PROJECT}"
 
-COPY bindgen-project build-project create-project image-project xbuild-project /usr/local/bin/
+COPY bindgen-project build-project create-project image-project xbuild-project flash-project /usr/local/bin/
 COPY templates/ "${TEMPLATES}"
 
 CMD ["/usr/local/bin/build-project"]
