@@ -4,7 +4,7 @@ set -e
 
 die() { echo "$*" 1>&2 ; exit 1 ; }
 
-test -f Cargo.toml || die "unable to find 'Cargo.toml'. You will need to map the container path /home/build to the path of your Rust project. You can do this using: docker run -ti -v $PWD:/build:z rust-esp"
+test -f Cargo.toml || die "unable to find 'Cargo.toml'. You will need to map the container path /home/project to the path of your Rust project. You can do this using: docker run -ti -v $PWD:/home/project:z rust-esp"
 
 for i in esp-idf .cargo main; do
 	test -d "$i" || die "'$i' is missing. Use 'create-project' to set up the build."
