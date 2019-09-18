@@ -17,10 +17,17 @@ jobs:
 
     - name: Authenticate
       run: echo ${{ secrets.REGISTRY_PASSWORD }} | docker login quay.io --username ${{secrets.REGISTRY_USERNAME}} --password-stdin
-      if: github.ref == 'refs/heads/master'
-    - name: Tag the image
+
+    - name: Tag the image (master)
       if: github.ref == 'refs/heads/master'
       run: docker tag rust-esp:${{ github.sha }} quay.io/ctron/rust-esp:latest
-    - name: Push the image
+    - name: Push the image (master)
       if: github.ref == 'refs/heads/master'
       run: docker push quay.io/ctron/rust-esp:latest
+
+    - name: Tag the image (develop)
+      if: github.ref == 'refs/heads/develop'
+      run: docker tag rust-esp:${{ github.sha }} quay.io/ctron/rust-esp:develop
+    - name: Push the image (develop)
+      if: github.ref == 'refs/heads/develop'
+      run: docker push quay.io/ctron/rust-esp:develop
