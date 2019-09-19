@@ -13,7 +13,7 @@ while read -r include; do
 	FLAGS+=" -I${include}"
 done <<< "$(find "${IDF_PATH}/components" -maxdepth 3 -name include)"
 
-: "${BINDGEN_FLAGS:=--use-core --no-layout-tests}"
+: "${BINDGEN_FLAGS:=--use-core --no-layout-tests --ctypes-prefix=libc}"
 
 #shellcheck disable=SC2086
 bindgen $BINDGEN_FLAGS --output esp32-sys/src/bindings.rs esp32-sys/src/bindings.h -- $FLAGS
