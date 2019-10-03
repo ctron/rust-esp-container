@@ -37,7 +37,6 @@ ARG RUSTC_PATH="${RUSTC_BASE}/rust_xtensa"
 ARG RUSTC_BUILD_PATH="${RUSTC_BASE}/rust_build"
 
 ENV PATH "/root/.cargo/bin:${ESP_PATH}/bin:${PATH}"
-ENV CARGO_HOME /home/project/target/cargo
 
 # -------------------------------------------------------------------
 # Install expected depdendencies
@@ -155,6 +154,7 @@ ENV PROJECT="/home/project/"
 ENV XARGO_RUST_SRC="${RUSTC_PATH}/src"
 ENV TEMPLATES="${TOOLCHAIN}/templates"
 ENV LIBCLANG_PATH="${LLVM_INSTALL_PATH}/lib"
+ENV CARGO_HOME="${PROJECT}target/cargo"
 
 VOLUME "${PROJECT}"
 WORKDIR "${PROJECT}"
