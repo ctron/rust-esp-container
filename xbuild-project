@@ -2,4 +2,4 @@
 
 set -e
 
-CARGO_HOME=/home/project/target/cargo cargo +xtensa xbuild --target "${XARGO_TARGET:-xtensa-esp32-none-elf}" --release
+cargo +xtensa xbuild --target "${XARGO_TARGET:-xtensa-esp32-none-elf}" --release
