@@ -33,8 +33,8 @@ ARG LLVM_BUILD_PATH="${LLVM_BASE}/llvm_build"
 ARG LLVM_INSTALL_PATH="${LLVM_BASE}/llvm_install"
 
 ARG RUSTC_BASE="${TOOLCHAIN}/rustc"
-ARG RUSTC_PATH="${RUSTC_BASE}/rust_xtensa"
 ARG RUSTC_BUILD_PATH="${RUSTC_BASE}/rust_build"
+ARG RUSTC_INSTALL_PATH="${RUSTC_BASE}/rust_install"
 
 ENV PATH "/root/.cargo/bin:${ESP_PATH}/bin:${PATH}"
 
@@ -43,6 +43,7 @@ ENV PATH "/root/.cargo/bin:${ESP_PATH}/bin:${PATH}"
 # -------------------------------------------------------------------
 
 RUN apt-get update \
+ && apt-get dist-upgrade -y \
  && apt-get install -y \
        bison \
        cmake \
@@ -124,15 +125,17 @@ WORKDIR "${RUSTC_BASE}"
 RUN git clone \
         --recursive --single-branch \
         https://github.com/MabezDev/rust-xtensa.git \
-        "${RUSTC_PATH}" \
- && mkdir -p "${RUSTC_BUILD_PATH}" \
- && cd "${RUSTC_PATH}" \
+        "${RUSTC_BUILD_PATH}" \
+ && mkdir -p "${RUSTC_INSTALL_PATH}" \
+ && cd "${RUSTC_BUILD_PATH}" \
  && git reset --hard "${RUSTC_VERSION}" \
  && ./configure \
         --llvm-root "${LLVM_INSTALL_PATH}" \
-        --prefix "${RUSTC_BUILD_PATH}" \
+        --prefix "${RUSTC_INSTALL_PATH}" \
  && python ./x.py build \
- && python ./x.py install
+ && python ./x.py install \
+ && cd "${RUSTC_BASE}" \
+ && rm -Rf "${RUSTC_BUILD_PATH}"
 
 # -------------------------------------------------------------------
 # Setup rustup toolchain
@@ -145,7 +148,7 @@ RUN curl \
         https://sh.rustup.rs \
     | sh -s -- -y --default-toolchain stable \
  && rustup component add rustfmt \
- && rustup toolchain link xtensa "${RUSTC_BUILD_PATH}" \
+ && rustup toolchain link xtensa "${RUSTC_INSTALL_PATH}" \
  && cargo install cargo-xbuild bindgen
 
 # -------------------------------------------------------------------
@@ -154,7 +157,6 @@ RUN curl \
 
 ENV PROJECT="/home/project/"
 
-ENV XARGO_RUST_SRC="${RUSTC_PATH}/src"
 ENV TEMPLATES="${TOOLCHAIN}/templates"
 ENV LIBCLANG_PATH="${LLVM_INSTALL_PATH}/lib"
 ENV CARGO_HOME="${PROJECT}target/cargo"
