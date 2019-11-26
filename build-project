@@ -17,8 +17,9 @@ test -f sdkconfig || die "'sdkconfig' is missing. You can create one running 'ma
 
 make -j app
 
-if test -d esp32-sys; then
-	if ! test -f esp32-sys/src/bindings.rs; then
+: "${ESP32_SYS_DIR:=esp32-sys}"
+if test -d "$ESP32_SYS_DIR"; then
+	if ! test -f "$ESP32_SYS_DIR/src/bindings.rs"; then
 		echo "esp32-sys crate is present, but bindings.rs is missing, running bindgen-project"
 		bindgen-project
 	fi
