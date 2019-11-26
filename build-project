@@ -24,7 +24,7 @@ if test -d esp32-sys; then
 	fi
 fi
 
-xbuild-project
+xbuild-project "$@"
 image-project
 
 echo Build complete
