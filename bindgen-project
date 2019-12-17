@@ -18,6 +18,8 @@ FLAGS+=" -I${IDF_PATH}/components/lwip/lwip/src/include"
 FLAGS+=" -I${IDF_PATH}/components/lwip/port/esp32/include"
 FLAGS+=" -I${IDF_PATH}/components/newlib/platform_include"
 FLAGS+=" -I${IDF_PATH}/components/lwip/include/apps"
+FLAGS+=" -I${IDF_PATH}/components/lwip/include/apps/sntp"
+FLAGS+=" -I${IDF_PATH}/components/esp-tls"
 
 : "${BINDGEN_FLAGS:=--use-core --no-layout-tests}"
 
