@@ -2,4 +2,16 @@
 
 set -e
 
+get_make_var() {
+  var=$1
+  mkfile=$(mktemp /home/project/build/linker-XXXXXXXXXX.mk)
+  cp /home/project/Makefile "$mkfile"
+  echo 'print-%: ; @echo get-make-var: $($*)' >> "$mkfile"
+  value=$(make "print-$var" -f "$mkfile" BUILD_DIR_BASE="/home/project/build" | grep -F 'get-make-var: ' | cut -d' ' -f2-)
+  echo "$value"
+}
+
+LDFLAGS="$(get_make_var LDFLAGS)"
+export RUSTFLAGS="-C target-cpu=esp32 -C save-temps $(echo "$LDFLAGS" | sed 's/[^ ]* */-C link-arg=&/g')"
+
 cargo +xtensa xbuild --target "${XARGO_TARGET:-xtensa-esp32-none-elf}" --release
