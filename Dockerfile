@@ -5,14 +5,14 @@ FROM debian:buster-slim
 # -------------------------------------------------------------------
 
 # esp-idf framework
-ARG IDF_VERSION="v4.0-beta2"
+ARG IDF_VERSION="v4.0"
 
 # llvm-xtensa
 ARG CLANG_VERSION="248d9ce8765248d953c3e5ef4022fb350bbe6c51"
 ARG LLVM_VERSION="757e18f722dbdcd98b8479e25041b1eee1128ce9"
 
 # rust-xtensa
-ARG RUSTC_VERSION="cf75e7f9a189657830a5619ce51a2891a618232c"
+ARG RUSTC_VERSION="2d3ec14f587789a9cab55597e376ea15d76fd75e"
 
 # -------------------------------------------------------------------
 # Toolchain Path Config
@@ -56,6 +56,7 @@ RUN apt-get update \
        pkg-config \
        python \
        python-pip \
+       python-virtualenv \
        wget \
  && rm -rf /var/lib/apt/lists/*
 
