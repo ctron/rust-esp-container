@@ -8,14 +8,13 @@ FROM debian:buster-slim
 ARG ESP_VERSION="1.22.0-80-g6c4433a-5.2.0"
 
 # esp-idf framework
-ARG IDF_VERSION="v3.3-beta3"
+ARG IDF_VERSION="v3.3.2"
 
-# llvm-xtensa
-ARG CLANG_VERSION="248d9ce8765248d953c3e5ef4022fb350bbe6c51"
-ARG LLVM_VERSION="757e18f722dbdcd98b8479e25041b1eee1128ce9"
+# llvm-xtensa (xtensa_release_9.0.1)
+ARG LLVM_VERSION="654ba115e55638acc60a8dacf8b1b8d8468cc4f4"
 
 # rust-xtensa
-ARG RUSTC_VERSION="b365cff41a60df8fd5f1237ef71897edad0375dd"
+ARG RUSTC_VERSION="672b35ef0d38d3cd3b0d77eb15e5e58d9f4efec6"
 
 # -------------------------------------------------------------------
 # Toolchain Path Config
@@ -53,8 +52,10 @@ RUN apt-get update \
        git \
        gperf \
        libncurses-dev \
+       libssl-dev \
        make \
        ninja-build \
+       pkg-config \
        python \
        python-pip \
        wget \
@@ -93,24 +94,20 @@ WORKDIR "${LLVM_BASE}"
 RUN mkdir "${LLVM_PATH}" \
  && cd "${LLVM_PATH}" \
  && git init \
- && git remote add origin https://github.com/espressif/llvm-xtensa.git \
+ && git remote add origin https://github.com/espressif/llvm-project.git \
  && git fetch --depth 1 origin "${LLVM_VERSION}" \
- && git checkout FETCH_HEAD \
- && mkdir -p "${LLVM_PATH}/tools/clang" \
- && cd "${LLVM_PATH}/tools/clang" \
- && git init \
- && git remote add origin https://github.com/espressif/clang-xtensa.git \
- && git fetch --depth 1 origin "${CLANG_VERSION}" \
  && git checkout FETCH_HEAD \
  && mkdir -p "${LLVM_BUILD_PATH}" \
  && cd "${LLVM_BUILD_PATH}" \
- && cmake "${LLVM_PATH}" \
-       -DLLVM_TARGETS_TO_BUILD="Xtensa;X86" \
+ && cmake "${LLVM_PATH}/llvm" \
+       -DLLVM_TARGETS_TO_BUILD="X86" \
+       -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD="Xtensa" \
+       -DLLVM_ENABLE_PROJECTS=clang \
        -DLLVM_INSTALL_UTILS=ON \
        -DLLVM_BUILD_TESTS=0 \
        -DLLVM_INCLUDE_TESTS=0 \
        -DCMAKE_BUILD_TYPE=Release \
-       -DCMAKE_INSTALL_PREFIX="${LLVM_BASE}/llvm_install" \
+       -DCMAKE_INSTALL_PREFIX="${LLVM_INSTALL_PATH}" \
        -DCMAKE_CXX_FLAGS="-w" \
        -G "Ninja" \
  && ninja install \
@@ -129,6 +126,7 @@ RUN git clone \
  && cd "${RUSTC_PATH}" \
  && git reset --hard "${RUSTC_VERSION}" \
  && ./configure \
+        --experimental-targets=Xtensa \
         --llvm-root "${LLVM_INSTALL_PATH}" \
         --prefix "${RUSTC_BUILD_PATH}" \
  && python ./x.py build \
