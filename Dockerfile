@@ -4,11 +4,8 @@ FROM debian:buster-slim
 # Toolchain Version Config
 # -------------------------------------------------------------------
 
-# Espressif toolchain
-ARG ESP_VERSION="1.22.0-80-g6c4433a-5.2.0"
-
 # esp-idf framework
-ARG IDF_VERSION="v3.3.2"
+ARG IDF_VERSION="v4.0"
 
 # llvm-xtensa (xtensa_release_9.0.1)
 ARG LLVM_VERSION="654ba115e55638acc60a8dacf8b1b8d8468cc4f4"
@@ -23,7 +20,6 @@ ARG RUSTC_VERSION="672b35ef0d38d3cd3b0d77eb15e5e58d9f4efec6"
 ARG TOOLCHAIN="/home/esp32-toolchain"
 
 ARG ESP_BASE="${TOOLCHAIN}/esp"
-ENV ESP_PATH "${ESP_BASE}/esp-toolchain"
 ENV IDF_PATH "${ESP_BASE}/esp-idf"
 
 ARG LLVM_BASE="${TOOLCHAIN}/llvm"
@@ -35,7 +31,7 @@ ARG RUSTC_BASE="${TOOLCHAIN}/rustc"
 ARG RUSTC_PATH="${RUSTC_BASE}/rust_xtensa"
 ARG RUSTC_BUILD_PATH="${RUSTC_BASE}/rust_build"
 
-ENV PATH "/root/.cargo/bin:${ESP_PATH}/bin:${PATH}"
+ENV PATH "/root/.cargo/bin:${PATH}"
 
 # -------------------------------------------------------------------
 # Install expected depdendencies
@@ -53,28 +49,15 @@ RUN apt-get update \
        gperf \
        libncurses-dev \
        libssl-dev \
+       libusb-1.0 \
        make \
        ninja-build \
        pkg-config \
        python \
        python-pip \
+       python-virtualenv \
        wget \
  && rm -rf /var/lib/apt/lists/*
-
-# -------------------------------------------------------------------
-# Setup esp32 toolchain
-# -------------------------------------------------------------------
-
-WORKDIR "${ESP_BASE}"
-RUN curl \
-       --proto '=https' \
-       --tlsv1.2 \
-       -sSf \
-       -o "${ESP_PATH}.tar.gz" \
-       "https://dl.espressif.com/dl/xtensa-esp32-elf-linux64-${ESP_VERSION}.tar.gz" \
- && mkdir "${ESP_PATH}" \
- && tar -xzf "${ESP_PATH}.tar.gz" -C "${ESP_PATH}" --strip-components 1 \
- && rm -rf "${ESP_PATH}.tar.gz"
 
 # -------------------------------------------------------------------
 # Setup esp-idf
@@ -84,7 +67,8 @@ WORKDIR "${ESP_BASE}"
 RUN  git clone \
        --recursive --single-branch -b "${IDF_VERSION}" \
        https://github.com/espressif/esp-idf.git \
- && pip install --user -r "${IDF_PATH}/requirements.txt"
+ && cd ${IDF_PATH} \
+ && ./install.sh
 
 # -------------------------------------------------------------------
 # Build llvm-xtensa
