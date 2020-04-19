@@ -144,7 +144,7 @@ ENV CARGO_HOME="${PROJECT}target/cargo"
 VOLUME "${PROJECT}"
 WORKDIR "${PROJECT}"
 
-COPY bindgen-project build-project create-project image-project xbuild-project flash-project /usr/local/bin/
+COPY bindgen-project build-project create-project image-project quick-build xbuild-project flash-project /usr/local/bin/
 COPY templates/ "${TEMPLATES}"
 
 CMD ["/usr/local/bin/build-project"]

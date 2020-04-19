@@ -2,6 +2,8 @@
 
 set -e
 
+[ -z "$IDF_TOOLS_EXPORT_CMD" ] && source "$IDF_PATH/export.sh"
+
 "$IDF_PATH/components/esptool_py/esptool/esptool.py" \
      --chip esp32 \
      --port /dev/ttyUSB0 \

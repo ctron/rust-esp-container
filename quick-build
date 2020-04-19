@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+set -e
+
+[ -z "$IDF_TOOLS_EXPORT_CMD" ] && source "$IDF_PATH/export.sh"
+
+xbuild-project "$@"
+image-project
+
+echo Build complete
