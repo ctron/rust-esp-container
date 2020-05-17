@@ -1,35 +1,11 @@
 FROM debian:buster-slim
 
 # -------------------------------------------------------------------
-# Toolchain Version Config
-# -------------------------------------------------------------------
-
-# esp-idf framework
-ARG IDF_VERSION="v4.0"
-
-# llvm-xtensa (xtensa_release_9.0.1)
-ARG LLVM_VERSION="654ba115e55638acc60a8dacf8b1b8d8468cc4f4"
-
-# rust-xtensa
-ARG RUSTC_VERSION="672b35ef0d38d3cd3b0d77eb15e5e58d9f4efec6"
-
-# -------------------------------------------------------------------
 # Toolchain Path Config
 # -------------------------------------------------------------------
 
 ARG TOOLCHAIN="/home/esp32-toolchain"
 
-ARG ESP_BASE="${TOOLCHAIN}/esp"
-ENV IDF_PATH "${ESP_BASE}/esp-idf"
-
-ARG LLVM_BASE="${TOOLCHAIN}/llvm"
-ARG LLVM_PATH="${LLVM_BASE}/llvm_xtensa"
-ARG LLVM_BUILD_PATH="${LLVM_BASE}/llvm_build"
-ARG LLVM_INSTALL_PATH="${LLVM_BASE}/llvm_install"
-
-ARG RUSTC_BASE="${TOOLCHAIN}/rustc"
-ARG RUSTC_PATH="${RUSTC_BASE}/rust_xtensa"
-ARG RUSTC_BUILD_PATH="${RUSTC_BASE}/rust_build"
 
 ENV PATH "/root/.cargo/bin:${PATH}"
 
@@ -63,6 +39,11 @@ RUN apt-get update \
 # Setup esp-idf
 # -------------------------------------------------------------------
 
+# esp-idf framework
+ARG IDF_VERSION="v4.0"
+ARG ESP_BASE="${TOOLCHAIN}/esp"
+ENV IDF_PATH "${ESP_BASE}/esp-idf"
+
 WORKDIR "${ESP_BASE}"
 RUN  git clone \
        --recursive --single-branch -b "${IDF_VERSION}" \
@@ -73,6 +54,13 @@ RUN  git clone \
 # -------------------------------------------------------------------
 # Build llvm-xtensa
 # -------------------------------------------------------------------
+
+# llvm-xtensa (xtensa_release_9.0.1)
+ARG LLVM_VERSION="ae26b7e4eb0938601f8a8744ff50c178a3ef0847"
+ARG LLVM_BASE="${TOOLCHAIN}/llvm"
+ARG LLVM_PATH="${LLVM_BASE}/llvm_xtensa"
+ARG LLVM_BUILD_PATH="${LLVM_BASE}/llvm_build"
+ARG LLVM_INSTALL_PATH="${LLVM_BASE}/llvm_install"
 
 WORKDIR "${LLVM_BASE}"
 RUN mkdir "${LLVM_PATH}" \
@@ -101,6 +89,12 @@ RUN mkdir "${LLVM_PATH}" \
 # Build rust-xtensa
 # -------------------------------------------------------------------
 
+# rust-xtensa
+ARG RUSTC_VERSION="672b35ef0d38d3cd3b0d77eb15e5e58d9f4efec6"
+ARG RUSTC_BASE="${TOOLCHAIN}/rustc"
+ARG RUSTC_PATH="${RUSTC_BASE}/rust_xtensa"
+ARG RUSTC_BUILD_PATH="${RUSTC_BASE}/rust_build"
+
 WORKDIR "${RUSTC_BASE}"
 RUN git clone \
         --recursive --single-branch \
@@ -120,6 +114,15 @@ RUN git clone \
 # Setup rustup toolchain
 # -------------------------------------------------------------------
 
+# Need to use specific version of xbuild.
+# LTO was enabled in 0.5.30 and then removed in 0.5.31.
+# 0.5.32 passes `-Cembed-bitcode=yes` instead of `-Clinker-plugin-lto` for sysroot.
+# But, embed-bitcode isn't recognized by rustc 1.43.1.
+# Details:
+# https://github.com/rust-osdev/cargo-xbuild/issues/72
+# https://stackoverflow.com/questions/61755610/unknown-feature-llvm-asm-when-compile-rust-src
+
+WORKDIR "${RUSTC_BASE}"
 RUN curl \
         --proto '=https' \
         --tlsv1.2 \
@@ -128,7 +131,8 @@ RUN curl \
     | sh -s -- -y --default-toolchain stable \
  && rustup component add rustfmt \
  && rustup toolchain link xtensa "${RUSTC_BUILD_PATH}" \
- && cargo install cargo-xbuild bindgen
+ && cargo install bindgen \
+ && cargo install --version 0.5.29 cargo-xbuild
 
 # -------------------------------------------------------------------
 # Our Project
