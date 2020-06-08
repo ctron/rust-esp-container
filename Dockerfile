@@ -40,7 +40,7 @@ RUN apt-get update \
 # -------------------------------------------------------------------
 
 # esp-idf framework
-ARG IDF_VERSION="v4.0"
+ARG IDF_VERSION="v4.0.1"
 ARG ESP_BASE="${TOOLCHAIN}/esp"
 ENV IDF_PATH "${ESP_BASE}/esp-idf"
 
@@ -90,7 +90,7 @@ RUN mkdir "${LLVM_PATH}" \
 # -------------------------------------------------------------------
 
 # rust-xtensa
-ARG RUSTC_VERSION="672b35ef0d38d3cd3b0d77eb15e5e58d9f4efec6"
+ARG RUSTC_VERSION="ace01fc044af7ac0feea0cdebff6be20c2bb9585"
 ARG RUSTC_BASE="${TOOLCHAIN}/rustc"
 ARG RUSTC_PATH="${RUSTC_BASE}/rust_xtensa"
 ARG RUSTC_BUILD_PATH="${RUSTC_BASE}/rust_build"
