@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-
-set -e
-
-cargo +xtensa xbuild --target "${XARGO_TARGET:-xtensa-esp32-none-elf}" --release
