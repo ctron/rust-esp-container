@@ -1,20 +1,11 @@
 FROM debian:buster-slim
 
 # -------------------------------------------------------------------
-# Toolchain Path Config
-# -------------------------------------------------------------------
-
-ARG TOOLCHAIN="/home/esp32-toolchain"
-
-
-ENV PATH "/root/.cargo/bin:${PATH}"
-
-# -------------------------------------------------------------------
 # Install expected depdendencies
 # -------------------------------------------------------------------
 
 RUN apt-get update \
- && apt-get install -y \
+ && apt-get install -y --no-install-recommends \
        bison \
        cmake \
        curl \
@@ -36,18 +27,23 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 # -------------------------------------------------------------------
+# Globals
+# -------------------------------------------------------------------
+
+ARG TOOLCHAIN="/opt/xtensa"
+
+# -------------------------------------------------------------------
 # Setup esp-idf
 # -------------------------------------------------------------------
 
-# esp-idf framework
-ARG IDF_VERSION="v4.0.1"
-ARG ESP_BASE="${TOOLCHAIN}/esp"
-ENV IDF_PATH "${ESP_BASE}/esp-idf"
+ARG IDF_BRANCH="release/v4.2"
 
-WORKDIR "${ESP_BASE}"
+ENV IDF_PATH="${TOOLCHAIN}/esp-idf"
+
 RUN  git clone \
-       --recursive --single-branch -b "${IDF_VERSION}" \
+       -b "${IDF_BRANCH}" --depth 1 --recursive --single-branch \
        https://github.com/espressif/esp-idf.git \
+       "${IDF_PATH}" \
  && cd ${IDF_PATH} \
  && ./install.sh
 
@@ -55,100 +51,87 @@ RUN  git clone \
 # Build llvm-xtensa
 # -------------------------------------------------------------------
 
-# llvm-xtensa (xtensa_release_9.0.1)
-ARG LLVM_VERSION="ae26b7e4eb0938601f8a8744ff50c178a3ef0847"
-ARG LLVM_BASE="${TOOLCHAIN}/llvm"
-ARG LLVM_PATH="${LLVM_BASE}/llvm_xtensa"
-ARG LLVM_BUILD_PATH="${LLVM_BASE}/llvm_build"
-ARG LLVM_INSTALL_PATH="${LLVM_BASE}/llvm_install"
+ARG LLVM_BRANCH="xtensa_release_10.0.1"
+ARG LLVM_SRC="/tmp/llvm"
+ARG LLVM_BUILD="${LLVM_SRC}/build"
+ARG LLVM_INSTALL_PATH="${TOOLCHAIN}/llvm"
 
-WORKDIR "${LLVM_BASE}"
-RUN mkdir "${LLVM_PATH}" \
- && cd "${LLVM_PATH}" \
- && git init \
- && git remote add origin https://github.com/espressif/llvm-project.git \
- && git fetch --depth 1 origin "${LLVM_VERSION}" \
- && git checkout FETCH_HEAD \
- && mkdir -p "${LLVM_BUILD_PATH}" \
- && cd "${LLVM_BUILD_PATH}" \
- && cmake "${LLVM_PATH}/llvm" \
+RUN git clone \
+      -b "${LLVM_BRANCH}" --depth 1 --single-branch \
+      https://github.com/espressif/llvm-project.git \
+      "${LLVM_SRC}" \
+ && mkdir -p "${LLVM_BUILD}" \
+ && cd "${LLVM_BUILD}" \
+ && cmake "${LLVM_SRC}/llvm" \
        -DLLVM_TARGETS_TO_BUILD="X86" \
        -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD="Xtensa" \
-       -DLLVM_ENABLE_PROJECTS=clang \
+       -DLLVM_ENABLE_PROJECTS="clang;lld" \
        -DLLVM_INSTALL_UTILS=ON \
-       -DLLVM_BUILD_TESTS=0 \
+       -DLLVM_INCLUDE_EXAMPLES=0 \
        -DLLVM_INCLUDE_TESTS=0 \
+       -DLLVM_INCLUDE_DOCS=0 \
+       -DLLVM_INCLUDE_BENCHMARKS=0 \
        -DCMAKE_BUILD_TYPE=Release \
        -DCMAKE_INSTALL_PREFIX="${LLVM_INSTALL_PATH}" \
        -DCMAKE_CXX_FLAGS="-w" \
        -G "Ninja" \
  && ninja install \
- && rm -rf "${LLVM_PATH}" "${LLVM_BUILD_PATH}"
+ && rm -rf "${LLVM_BUILD}" "${LLVM_SRC}"
 
 # -------------------------------------------------------------------
 # Build rust-xtensa
 # -------------------------------------------------------------------
 
 # rust-xtensa
-ARG RUSTC_VERSION="ace01fc044af7ac0feea0cdebff6be20c2bb9585"
-ARG RUSTC_BASE="${TOOLCHAIN}/rustc"
-ARG RUSTC_PATH="${RUSTC_BASE}/rust_xtensa"
-ARG RUSTC_BUILD_PATH="${RUSTC_BASE}/rust_build"
+ARG RUST_VERSION="xtensa-v0.2.0"
+ARG RUST_SRC="${TOOLCHAIN}/rust_src"
+ARG RUST_INSTALL_PATH="${TOOLCHAIN}/rust"
 
-WORKDIR "${RUSTC_BASE}"
 RUN git clone \
-        --recursive --single-branch \
+        -b "${RUST_VERSION}" --depth 1 --single-branch \
         https://github.com/MabezDev/rust-xtensa.git \
-        "${RUSTC_PATH}" \
- && mkdir -p "${RUSTC_BUILD_PATH}" \
- && cd "${RUSTC_PATH}" \
- && git reset --hard "${RUSTC_VERSION}" \
+        "${RUST_SRC}" \
+ && cd "${RUST_SRC}" \
  && ./configure \
+        --disable-compiler-docs \
+        --disable-docs \
+        --enable-lld \
         --experimental-targets=Xtensa \
         --llvm-root "${LLVM_INSTALL_PATH}" \
-        --prefix "${RUSTC_BUILD_PATH}" \
+        --prefix "${RUST_INSTALL_PATH}" \
  && python ./x.py build \
- && python ./x.py install
-
+ && python ./x.py install \
+ && python ./x.py clean
+ 
 # -------------------------------------------------------------------
 # Setup rustup toolchain
 # -------------------------------------------------------------------
 
-# Need to use specific version of xbuild.
-# LTO was enabled in 0.5.30 and then removed in 0.5.31.
-# 0.5.32 passes `-Cembed-bitcode=yes` instead of `-Clinker-plugin-lto` for sysroot.
-# But, embed-bitcode isn't recognized by rustc 1.43.1.
-# Details:
-# https://github.com/rust-osdev/cargo-xbuild/issues/72
-# https://stackoverflow.com/questions/61755610/unknown-feature-llvm-asm-when-compile-rust-src
-
-WORKDIR "${RUSTC_BASE}"
 RUN curl \
         --proto '=https' \
         --tlsv1.2 \
         -sSf \
         https://sh.rustup.rs \
     | sh -s -- -y --default-toolchain stable \
- && rustup component add rustfmt \
- && rustup toolchain link xtensa "${RUSTC_BUILD_PATH}" \
- && cargo install bindgen \
- && cargo install --version 0.5.29 cargo-xbuild
+ && . $HOME/.cargo/env \
+ && rustup toolchain link xtensa "${RUST_INSTALL_PATH}" \
+ && cargo install bindgen cargo-xbuild
 
 # -------------------------------------------------------------------
 # Our Project
 # -------------------------------------------------------------------
 
-ENV PROJECT="/home/project/"
+ARG PROJECT="/home/project/"
 
-ENV XARGO_RUST_SRC="${RUSTC_PATH}/src"
-ENV TEMPLATES="${TOOLCHAIN}/templates"
+#ENV CARGO_HOME="${PROJECT}target/cargo"
 ENV LIBCLANG_PATH="${LLVM_INSTALL_PATH}/lib"
-ENV CARGO_HOME="${PROJECT}target/cargo"
+ENV PATH="${LLVM_INSTALL_PATH}/bin:${RUST_INSTALL_PATH}/bin:${PATH}"
+#ENV RUSTC="${RUST_INSTALL_PATH}/build/x86_64-unknown-linux-gnu/stage2/bin/rustc"
+ENV XARGO_RUST_SRC="${RUST_SRC}/library"
 
 VOLUME "${PROJECT}"
 WORKDIR "${PROJECT}"
 
-COPY bindgen-project build-project create-project image-project quick-build xbuild-project flash-project /usr/local/bin/
-COPY templates/ "${TEMPLATES}"
+COPY bindgen-project quick-build entrypoint.sh /usr/local/bin/
 
-CMD ["/usr/local/bin/build-project"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
